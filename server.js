@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const { ObjectId } = require("mongodb");
+const dgram = require("dgram");
 
 const path = require("path");
 const PORT = process.env.PORT || 5000;
@@ -15,6 +16,46 @@ app.use(bodyParser.json());
 
 app.listen(PORT, () => {
 	console.log(`Server listening on port ${PORT}`);
+});
+
+/**********************************************************************************
+ *
+ * ARDUINO
+ *
+ **********************************************************************************/
+const udpClient = dgram.createSocket("udp4");
+const ARDUINO_IP = "192.168.0.30"; // Replace with your Arduino's IP address
+const ARDUINO_PORT = 2390; // The port your Arduino is listening on
+
+app.post("/api/sendCommand", (req, res) => {
+	const { command } = req.body;
+	const message = Buffer.from(command);
+
+	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
+		if (err) {
+			res.status(500).json({
+				error: "Failed to send command to Arduino",
+			});
+		} else {
+			res.status(200).json({ message: "Command sent successfully" });
+		}
+	});
+});
+
+app.get("/api/getData", (req, res) => {
+	const message = Buffer.from("request data");
+
+	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
+		if (err) {
+			res.status(500).json({
+				error: "Failed to request data from Arduino",
+			});
+		}
+	});
+
+	udpClient.once("message", (msg, rinfo) => {
+		res.status(200).json({ data: msg.toString() });
+	});
 });
 
 /**********************************************************************************
