@@ -30,13 +30,16 @@ const ARDUINO_PORT = 2390; // The port your Arduino is listening on
 app.post("/api/sendCommand", (req, res) => {
 	const { command } = req.body;
 	const message = Buffer.from(command);
+	console.log(`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`);
 
 	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
 		if (err) {
+			console.error(`Error sending message: ${err}`);
 			res.status(500).json({
 				error: "Failed to send command to Arduino",
 			});
 		} else {
+			console.log("Message sent successfully");
 			res.status(200).json({ message: "Command sent successfully" });
 		}
 	});
