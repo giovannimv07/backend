@@ -26,6 +26,7 @@ app.listen(PORT, () => {
 const udpClient = dgram.createSocket("udp4");
 const ARDUINO_IP = "192.168.0.30"; // Replace with your Arduino's IP address
 const ARDUINO_PORT = 2390; // The port your Arduino is listening on
+let lastCommand = "";
 
 app.post("/api/sendCommand", (req, res) => {
 	const { command } = req.body;
@@ -59,6 +60,18 @@ app.get("/api/getData", (req, res) => {
 	udpClient.once("message", (msg, rinfo) => {
 		res.status(200).json({ data: msg.toString() });
 	});
+});
+
+// Endpoint to send command to the Arduino
+app.post("/arduino/command", (req, res) => {
+	const { command } = req.body;
+	lastCommand = command; // Store the last command received
+	res.send("Command received");
+});
+
+// Endpoint for the Arduino to fetch the last command
+app.get("/arduino/lastCommand", (req, res) => {
+	res.json({ command: lastCommand });
 });
 
 /**********************************************************************************
