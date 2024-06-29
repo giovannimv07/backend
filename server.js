@@ -23,56 +23,10 @@ app.listen(PORT, () => {
  * ARDUINO
  *
  **********************************************************************************/
-const udpClient = dgram.createSocket("udp4");
-const ARDUINO_IP = "192.168.0.26"; // Replace with your Arduino's IP address
-// const ARDUINO_IP = "172.20.10.6"; // Replace with your Arduino's IP address
-const ARDUINO_PORT = 2390; // The port your Arduino is listening on
-let lastCommand = "";
-
-app.post("/api/sendCommand", (req, res) => {
-	const { command } = req.body;
-	const message = Buffer.from(command);
-	console.log(`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`);
-
-	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
-		if (err) {
-			console.error(`Error sending message: ${err}`);
-			res.status(500).json({
-				error: "Failed to send command to Arduino",
-			});
-		} else {
-			console.log("Message sent successfully");
-			res.status(200).json({ message: "Command sent successfully" });
-		}
-	});
-});
-
-app.get("/api/getData", (req, res) => {
-	const message = Buffer.from("request data");
-
-	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
-		if (err) {
-			res.status(500).json({
-				error: "Failed to request data from Arduino",
-			});
-		}
-	});
-
-	udpClient.once("message", (msg, rinfo) => {
-		res.status(200).json({ data: msg.toString() });
-	});
-});
-
-// Endpoint to send command to the Arduino
-app.post("/arduino/command", (req, res) => {
-	const { command } = req.body;
-	lastCommand = command; // Store the last command received
-	res.send("Command received");
-});
-
-// Endpoint for the Arduino to fetch the last command
-app.get("/arduino/lastCommand", (req, res) => {
-	res.json({ command: lastCommand });
+app.post("/api/arduino", (req, res) => {
+	const { sensorValue } = req.body;
+	console.log(`Received sensor value: ${sensorValue}`);
+	res.send("Data received");
 });
 
 /**********************************************************************************
