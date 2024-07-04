@@ -23,11 +23,75 @@ app.listen(PORT, () => {
  * ARDUINO
  *
  **********************************************************************************/
-app.post("/api/arduino", (req, res) => {
-	const { sensorValue } = req.body;
-	console.log(`Received sensor value: ${sensorValue}`);
-	res.send("Data received");
+const udpClient = dgram.createSocket("udp4");
+const udpPort = 5001;
+// const ARDUINO_IP = "192.168.0.20"; // Replace with your Arduino's IP address
+const ARDUINO_IP = "192.168.137.175"; // Replace with your Arduino's IP address
+// const ARDUINO_IP = "172.20.10.6"; // Replace with your Arduino's IP address
+const ARDUINO_PORT = 2390; // The port your Arduino is listening on
+let latestSensorData = "";
+
+udpClient.on("listening", () => {
+	const address = udpClient.address();
+	console.log(`UDP Server listening on ${address.address}:${address.port}`);
 });
+
+udpClient.on("message", (message, remote) => {
+	const data = message.toString().trim();
+
+	if (data.startsWith("GPS")) {
+		console.log(
+			`Received GPS data from ${remote.address}:${remote.port}: ${data}`
+		);
+	} else if (data.startsWith("Sensor1")) {
+		const sensorValue = data.split(" ")[1];
+		latestSensorData = sensorValue;
+		console.log(
+			`Received sensor value from ${remote.address}:${remote.port}: Value 1 ${sensorValue}`
+		);
+	} else if (data.startsWith("Sensor2")) {
+		const sensorValue = data.split(" ")[1];
+		latestSensorData = sensorValue;
+		console.log(
+			`Received sensor value from ${remote.address}:${remote.port}: Value 2 ${sensorValue}`
+		);
+	} else if (data.startsWith("Acknowledge")) {
+		console.log(
+			`Received acknowledgment from ${remote.address}:${remote.port}: ${data}`
+		);
+	} else {
+		console.log(
+			`Received unknown message from ${remote.address}:${remote.port}: ${data}`
+		);
+	}
+	// console.log(
+	// 	`Received message from ${remote.address}:${remote.port}: ${message}`
+	// );
+});
+
+app.post("/api/sendCommand", (req, res) => {
+	const { command } = req.body;
+	const message = Buffer.from(command);
+	console.log(`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`);
+
+	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
+		if (err) {
+			console.error(`Error sending message: ${err}`);
+			res.status(500).json({
+				error: "Failed to send command to Arduino",
+			});
+		} else {
+			console.log("Message sent successfully");
+			res.status(200).json({ message: "Command sent successfully" });
+		}
+	});
+});
+
+app.get("/api/getSensorData", (req, res) => {
+	res.status(200).json({ sensorData: latestSensorData });
+});
+
+udpClient.bind(udpPort);
 
 /**********************************************************************************
  *
