@@ -25,10 +25,8 @@ app.listen(PORT, () => {
  **********************************************************************************/
 const udpClient = dgram.createSocket("udp4");
 const udpPort = 5001;
-// const ARDUINO_IP = "192.168.0.20"; // Replace with your Arduino's IP address
-const ARDUINO_IP = "192.168.137.175"; // Replace with your Arduino's IP address
-// const ARDUINO_IP = "172.20.10.6"; // Replace with your Arduino's IP address
-const ARDUINO_PORT = 2390; // The port your Arduino is listening on
+const ARDUINO_IP = process.env.IP_ARDUINO;
+const ARDUINO_PORT = 2390;
 let latestSensorData = "";
 
 udpClient.on("listening", () => {
