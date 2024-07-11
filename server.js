@@ -26,7 +26,7 @@ app.listen(PORT, () => {
 const udpClient = dgram.createSocket("udp4");
 const udpPort = 5001;
 // const ARDUINO_IP = process.env.IP_ARDUINO;
-const ARDUINO_IP = "";
+let ARDUINO_IP = "";
 const ARDUINO_PORT = 2390;
 let latestSensorData = "";
 
@@ -42,10 +42,17 @@ udpClient.on("message", (message, remote) => {
 		console.log(
 			`Received GPS data from ${remote.address}:${remote.port}: ${data}`
 		);
-		ARDUINO_IP = remote.address;
+		// ARDUINO_IP = remote.address;
+	} else if (data.startsWith("AR")) {
+		const arduinoIP = data.split(" ")[1];
+		ARDUINO_IP = arduinoIP;
+		console.log(
+			`Received Arduino IP address from ${remote.address}:${remote.port}: ${arduinoIP}`
+		);
 	} else if (data.startsWith("Sensor1")) {
 		const sensorValue = data.split(" ")[1];
 		latestSensorData = sensorValue;
+		ARDUINO_IP = remote.address;
 		console.log(
 			`Received sensor value from ${remote.address}:${remote.port}: Value 1 ${sensorValue}`
 		);
