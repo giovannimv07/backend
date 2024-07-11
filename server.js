@@ -44,10 +44,13 @@ udpClient.on("message", (message, remote) => {
 		);
 		// ARDUINO_IP = remote.address;
 	} else if (data.startsWith("AR")) {
-		const arduinoIP = data.split(" ")[1];
-		ARDUINO_IP = arduinoIP;
+		const arduinoIP = remote.address;
+		if (arduinoIP !== ARDUINO_IP) {
+			ARDUINO_IP = arduinoIP;
+			console.log(`Arduino IP address updated to: ${arduinoIP}`);
+		}
 		console.log(
-			`Received Arduino IP address from ${remote.address}:${remote.port}: ${arduinoIP}`
+			`Received Arduino IP address from ${remote.address}:${remote.port}: ${data}`
 		);
 	} else if (data.startsWith("Sensor1")) {
 		const sensorValue = data.split(" ")[1];
