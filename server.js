@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const { ObjectId } = require("mongodb");
 const dgram = require("dgram");
+const https = require("https");
 
 const path = require("path");
 const PORT = process.env.PORT || 5000;
@@ -39,10 +40,50 @@ udpClient.on("message", (message, remote) => {
 	const data = message.toString().trim();
 
 	if (data.startsWith("GPS")) {
+		const coordinates = data.substring(4).trim(); // Remove "GPS " prefix
+		const [latitude, longitude] = coordinates.split(",");
+
+		// BigDataCloud Reverse Geocoding API endpoint
+		const apiUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`;
+
+		// HTTP GET request to fetch address
+		https
+			.get(apiUrl, (response) => {
+				let data = "";
+
+				// A chunk of data has been received
+				response.on("data", (chunk) => {
+					data += chunk;
+				});
+
+				// The whole response has been received
+				response.on("end", () => {
+					try {
+						const parsedData = JSON.parse(data);
+						if (parsedData.locality) {
+							const address = parsedData.locality;
+							console.log(
+								`Received GPS coordinates from Arduino (${latitude}, ${longitude}):`
+							);
+							console.log(`Address: ${address}`);
+							// Here you can handle the address as needed
+						} else {
+							console.log(
+								"No address found for the given coordinates."
+							);
+						}
+					} catch (error) {
+						console.error("Error parsing response:", error);
+					}
+				});
+			})
+			.on("error", (error) => {
+				console.error("Error fetching address:", error);
+			});
+
 		console.log(
 			`Received GPS data from ${remote.address}:${remote.port}: ${data}`
 		);
-		// ARDUINO_IP = remote.address;
 	} else if (data.startsWith("AR")) {
 		const arduinoIP = remote.address;
 		if (arduinoIP !== ARDUINO_IP) {
