@@ -28,7 +28,8 @@ const udpClient = dgram.createSocket("udp4");
 const udpPort = 5001;
 // const ARDUINO_IP = process.env.IP_ARDUINO;
 let ARDUINO_IP = "";
-const ARDUINO_PORT = 2390;
+// const ARDUINO_PORT = 2390;
+let ARDUINO_PORT = 2390;
 let latestSensorData = "";
 
 udpClient.on("listening", () => {
@@ -86,9 +87,14 @@ udpClient.on("message", (message, remote) => {
 		);
 	} else if (data.startsWith("AR")) {
 		const arduinoIP = remote.address;
+		const arduinoPort = remote.port;
 		if (arduinoIP !== ARDUINO_IP) {
 			ARDUINO_IP = arduinoIP;
 			console.log(`Arduino IP address updated to: ${arduinoIP}`);
+		}
+		if (arduinoPort !== ARDUINO_PORT) {
+			ARDUINO_PORT = arduinoPort;
+			console.log(`Arduino IP address updated to: ${arduinoPort}`);
 		}
 		console.log(
 			`Received Arduino IP address from ${remote.address}:${remote.port}: ${data}`
