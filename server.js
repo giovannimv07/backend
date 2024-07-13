@@ -101,8 +101,13 @@ udpClient.on("message", (message, remote) => {
 		);
 	} else if (data.startsWith("Sensor1")) {
 		const sensorValue = data.split(" ")[1];
+		// console.log(
+		// 	"Normalized Sensor Data: [" +
+		// 		normalizeValue(sensorValue) +
+		// 		"] Chlorine ppm"
+		// );
 		latestSensorData = sensorValue;
-		ARDUINO_IP = remote.address;
+		// ARDUINO_IP = remote.address;
 		console.log(
 			`Received sensor value from ${remote.address}:${remote.port}: Value 1 ${sensorValue}`
 		);
@@ -125,6 +130,43 @@ udpClient.on("message", (message, remote) => {
 	// 	`Received message from ${remote.address}:${remote.port}: ${message}`
 	// );
 });
+
+// function normalizeValue(sensorStringValue) {
+// 	let floatSensorValue = parseFloat(sensorStringValue);
+// 	let normalizedValue = 0.0;
+// 	if (floatSensorValue <= 100 && floatSensorValue >= 82) {
+// 		normalizedValue = (-1 / 36)(floatSensorValue - 100) + 0.5;
+// 	} else if (floatSensorValue < 82 && floatSensorValue >= 50) {
+// 		normalizedValue = (-1 / 32)(floatSensorValue - 100) + 1.0;
+// 	} else if (floatSensorValue < 50 && floatSensorValue >= 32) {
+// 		normalizedValue = (-1 / 18)(floatSensorValue - 100) + 2.0;
+// 	} else if (floatSensorValue < 32) {
+// 		normalizedValue = (-2 / 7) * (floatSensorValue - 100) + 3.0;
+// 	}
+
+// 	return Math.abs(normalizedValue);
+// }
+
+// function normalizeValue(x) {
+// 	const a = 12.927448;
+// 	const b = -0.467851;
+// 	const c = 0.006314;
+// 	const d = -0.00002882;
+
+// 	return a + b * x + c * x * x + d * x * x * x < 0
+// 		? 0
+// 		: Math.ceil(a + b * x + c * x * x + d * x * x * x);
+
+// Calculate the absorbance
+// const absorbance = -Math.log10(parseFloat(sensorStringValue) / 950.0);
+// return parseInt(absorbance);
+// return (
+// 	12.927448 -
+// 	0.467851 * sensorStringValue +
+// 	0.006314 * sensorStringValue * sensorStringValue -
+// 	0.00002882 * sensorStringValue * sensorStringValue * sensorStringValue
+// );
+// }
 
 app.post("/api/sendCommand", (req, res) => {
 	const { command } = req.body;
