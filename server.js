@@ -33,6 +33,7 @@ let ARDUINO_PORT = 2390;
 let latestSensorData = "";
 let latestSensor1 = 900;
 let latestSensor2 = 900;
+let latestGPS = "";
 
 udpClient.on("listening", () => {
 	const address = udpClient.address();
@@ -72,7 +73,7 @@ udpClient.on("message", (message, remote) => {
 									`Received GPS coordinates from Arduino (${latitude}, ${longitude}):`
 								);
 								console.log(`Address: ${address}`);
-								// Here you can handle the address as needed
+								latestGPS = address;
 							} else {
 								console.log(
 									"No address found for the given coordinates."
@@ -110,13 +111,6 @@ udpClient.on("message", (message, remote) => {
 		latestSensor1 = parseInt(sensorValue);
 		latestSensorData = ppm(latestSensor1);
 		console.log(`Algebra PPM: ${latestSensorData}`);
-		// console.log(
-		// 	"Normalized Sensor Data: [" +
-		// 		normalizeValue(sensorValue) +
-		// 		"] Chlorine ppm"
-		// );
-		// latestSensorData = sensorValue;
-		// ARDUINO_IP = remote.address;
 		console.log(
 			`Received sensor value from ${remote.address}:${remote.port}: Value 1 ${sensorValue}`
 		);
@@ -135,13 +129,6 @@ udpClient.on("message", (message, remote) => {
 			`Received unknown message from ${remote.address}:${remote.port}: ${data}`
 		);
 	}
-
-	// console.log(`Hard PPM: ${ppm(latestSensor1)}`);
-	// latestSensorData = ppm(latestSensor1);
-	// console.log(`Algebra PPM: ${latestSensorData}`);
-	// console.log(
-	// 	`Received message from ${remote.address}:${remote.port}: ${message}`
-	// );
 });
 
 function ppm(sensorStringValue) {
@@ -160,33 +147,33 @@ function ppm(sensorStringValue) {
 	// console.log(`Sensor 1: ${sensorStringValue}`);
 	// console.log(`Algebra PPM : ${normalizedValue}`);
 
-	if (normalizedValue >= 5.0) {
-		const message = Buffer.from("Speaker On");
-		// console.log(
-		// 	`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`
-		// );
+	// if (normalizedValue >= 5.0) {
+	// 	const message = Buffer.from("Speaker On");
+	// 	// console.log(
+	// 	// 	`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`
+	// 	// );
 
-		udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
-			// if (err) {
-			// 	console.error(`Error sending message: ${err}`);
-			// } else {
-			// 	console.log("Message sent successfully");
-			// }
-		});
-	} else {
-		const message = Buffer.from("Speaker Off");
-		// console.log(
-		// 	`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`
-		// );
+	// 	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
+	// 		// if (err) {
+	// 		// 	console.error(`Error sending message: ${err}`);
+	// 		// } else {
+	// 		// 	console.log("Message sent successfully");
+	// 		// }
+	// 	});
+	// } else {
+	// 	const message = Buffer.from("Speaker Off");
+	// 	// console.log(
+	// 	// 	`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`
+	// 	// );
 
-		udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
-			// if (err) {
-			// 	console.error(`Error sending message: ${err}`);
-			// } else {
-			// 	console.log("Message sent successfully");
-			// }
-		});
-	}
+	// 	udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
+	// 		// if (err) {
+	// 		// 	console.error(`Error sending message: ${err}`);
+	// 		// } else {
+	// 		// 	console.log("Message sent successfully");
+	// 		// }
+	// 	});
+	// }
 
 	return Math.abs(normalizedValue.toFixed(2)).toString();
 }
@@ -213,6 +200,9 @@ app.get("/api/getSensorData", (req, res) => {
 	res.status(200).json({ sensorData: latestSensorData });
 });
 
+app.get("/api/getGPSData", (req, res) => {
+	res.status(200).json({ GPSData: latestGPS });
+});
 udpClient.bind(udpPort);
 
 /**********************************************************************************
