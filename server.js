@@ -31,6 +31,8 @@ let ARDUINO_IP = "";
 // const ARDUINO_PORT = 2390;
 let ARDUINO_PORT = 2390;
 let latestSensorData = "";
+let latestSensor1 = 900;
+let latestSensor2 = 900;
 
 udpClient.on("listening", () => {
 	const address = udpClient.address();
@@ -44,40 +46,44 @@ udpClient.on("message", (message, remote) => {
 		const coordinates = data.substring(4).trim(); // Remove "GPS " prefix
 		const [latitude, longitude] = coordinates.split(",");
 
-		// BigDataCloud Reverse Geocoding API endpoint
-		const apiUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`;
+		// Nominatim Reverse Geocoding API endpoint
+		const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`;
 
 		// HTTP GET request to fetch address
 		https
-			.get(apiUrl, (response) => {
-				let data = "";
+			.get(
+				apiUrl,
+				{ headers: { "User-Agent": "Mozilla/5.0" } },
+				(response) => {
+					let data = "";
 
-				// A chunk of data has been received
-				response.on("data", (chunk) => {
-					data += chunk;
-				});
+					// A chunk of data has been received
+					response.on("data", (chunk) => {
+						data += chunk;
+					});
 
-				// The whole response has been received
-				response.on("end", () => {
-					try {
-						const parsedData = JSON.parse(data);
-						if (parsedData.locality) {
-							const address = parsedData.locality;
-							console.log(
-								`Received GPS coordinates from Arduino (${latitude}, ${longitude}):`
-							);
-							console.log(`Address: ${address}`);
-							// Here you can handle the address as needed
-						} else {
-							console.log(
-								"No address found for the given coordinates."
-							);
+					// The whole response has been received
+					response.on("end", () => {
+						try {
+							const parsedData = JSON.parse(data);
+							if (parsedData.display_name) {
+								const address = parsedData.display_name;
+								console.log(
+									`Received GPS coordinates from Arduino (${latitude}, ${longitude}):`
+								);
+								console.log(`Address: ${address}`);
+								// Here you can handle the address as needed
+							} else {
+								console.log(
+									"No address found for the given coordinates."
+								);
+							}
+						} catch (error) {
+							console.error("Error parsing response:", error);
 						}
-					} catch (error) {
-						console.error("Error parsing response:", error);
-					}
-				});
-			})
+					});
+				}
+			)
 			.on("error", (error) => {
 				console.error("Error fetching address:", error);
 			});
@@ -101,19 +107,22 @@ udpClient.on("message", (message, remote) => {
 		);
 	} else if (data.startsWith("Sensor1")) {
 		const sensorValue = data.split(" ")[1];
+		latestSensor1 = parseInt(sensorValue);
+		latestSensorData = ppm(latestSensor1);
+		console.log(`Algebra PPM: ${latestSensorData}`);
 		// console.log(
 		// 	"Normalized Sensor Data: [" +
 		// 		normalizeValue(sensorValue) +
 		// 		"] Chlorine ppm"
 		// );
-		latestSensorData = sensorValue;
+		// latestSensorData = sensorValue;
 		// ARDUINO_IP = remote.address;
 		console.log(
 			`Received sensor value from ${remote.address}:${remote.port}: Value 1 ${sensorValue}`
 		);
 	} else if (data.startsWith("Sensor2")) {
 		const sensorValue = data.split(" ")[1];
-		latestSensorData = sensorValue;
+		latestSensor2 = parseInt(sensorValue);
 		console.log(
 			`Received sensor value from ${remote.address}:${remote.port}: Value 2 ${sensorValue}`
 		);
@@ -126,47 +135,61 @@ udpClient.on("message", (message, remote) => {
 			`Received unknown message from ${remote.address}:${remote.port}: ${data}`
 		);
 	}
+
+	// console.log(`Hard PPM: ${ppm(latestSensor1)}`);
+	// latestSensorData = ppm(latestSensor1);
+	// console.log(`Algebra PPM: ${latestSensorData}`);
 	// console.log(
 	// 	`Received message from ${remote.address}:${remote.port}: ${message}`
 	// );
 });
 
-// function normalizeValue(sensorStringValue) {
-// 	let floatSensorValue = parseFloat(sensorStringValue);
-// 	let normalizedValue = 0.0;
-// 	if (floatSensorValue <= 100 && floatSensorValue >= 82) {
-// 		normalizedValue = (-1 / 36)(floatSensorValue - 100) + 0.5;
-// 	} else if (floatSensorValue < 82 && floatSensorValue >= 50) {
-// 		normalizedValue = (-1 / 32)(floatSensorValue - 100) + 1.0;
-// 	} else if (floatSensorValue < 50 && floatSensorValue >= 32) {
-// 		normalizedValue = (-1 / 18)(floatSensorValue - 100) + 2.0;
-// 	} else if (floatSensorValue < 32) {
-// 		normalizedValue = (-2 / 7) * (floatSensorValue - 100) + 3.0;
-// 	}
+function ppm(sensorStringValue) {
+	let floatSensorValue = parseFloat(sensorStringValue);
+	let normalizedValue = 0.0;
+	if (floatSensorValue <= 170 && floatSensorValue >= 140) {
+		normalizedValue = (-1 / 60) * floatSensorValue + 10 / 3;
+	} else if (floatSensorValue <= 139 && floatSensorValue >= 100) {
+		normalizedValue = (-1 / 40) * floatSensorValue + 9 / 2;
+	} else if (floatSensorValue <= 99 && floatSensorValue >= 70) {
+		normalizedValue = (-1 / 30) * floatSensorValue + 16 / 3;
+	} else if (floatSensorValue <= 69) {
+		normalizedValue = (-2 / 23) * floatSensorValue + 209 / 23;
+	}
 
-// 	return Math.abs(normalizedValue);
-// }
+	// console.log(`Sensor 1: ${sensorStringValue}`);
+	// console.log(`Algebra PPM : ${normalizedValue}`);
 
-// function normalizeValue(x) {
-// 	const a = 12.927448;
-// 	const b = -0.467851;
-// 	const c = 0.006314;
-// 	const d = -0.00002882;
+	if (normalizedValue >= 5.0) {
+		const message = Buffer.from("Speaker On");
+		// console.log(
+		// 	`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`
+		// );
 
-// 	return a + b * x + c * x * x + d * x * x * x < 0
-// 		? 0
-// 		: Math.ceil(a + b * x + c * x * x + d * x * x * x);
+		udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
+			// if (err) {
+			// 	console.error(`Error sending message: ${err}`);
+			// } else {
+			// 	console.log("Message sent successfully");
+			// }
+		});
+	} else {
+		const message = Buffer.from("Speaker Off");
+		// console.log(
+		// 	`Sending message: ${message} to ${ARDUINO_IP}:${ARDUINO_PORT}`
+		// );
 
-// Calculate the absorbance
-// const absorbance = -Math.log10(parseFloat(sensorStringValue) / 950.0);
-// return parseInt(absorbance);
-// return (
-// 	12.927448 -
-// 	0.467851 * sensorStringValue +
-// 	0.006314 * sensorStringValue * sensorStringValue -
-// 	0.00002882 * sensorStringValue * sensorStringValue * sensorStringValue
-// );
-// }
+		udpClient.send(message, ARDUINO_PORT, ARDUINO_IP, (err) => {
+			// if (err) {
+			// 	console.error(`Error sending message: ${err}`);
+			// } else {
+			// 	console.log("Message sent successfully");
+			// }
+		});
+	}
+
+	return Math.abs(normalizedValue.toFixed(2)).toString();
+}
 
 app.post("/api/sendCommand", (req, res) => {
 	const { command } = req.body;
@@ -245,6 +268,8 @@ app.post("/api/register", async (req, res, next) => {
 	var id = -1;
 	var fn = "";
 	var ln = "";
+	var em = "";
+	var cd = -1;
 	var error = "";
 	// Check for duplicate users
 	try {
@@ -273,11 +298,21 @@ app.post("/api/register", async (req, res, next) => {
 		id = result.insertedId;
 		fn = firstName;
 		ln = lastName;
+		em = email;
+		cd = code;
 	} catch (e) {
 		error = e.toString();
 	}
 
-	var ret = { id: id, firstName: fn, lastName: ln, error: error };
+	var ret = {
+		id: id,
+		firstName: fn,
+		lastName: ln,
+		email: em,
+		code: code,
+		verified: false,
+		error: error,
+	};
 	res.status(error ? 500 : 200).json(ret);
 });
 
